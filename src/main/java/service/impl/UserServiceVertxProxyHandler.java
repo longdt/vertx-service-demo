@@ -1,16 +1,18 @@
-package service;
+package service.impl;
 
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.serviceproxy.HelperUtils;
-import io.vertx.serviceproxy.ProxyHandler;
 import io.vertx.serviceproxy.ServiceException;
 import io.vertx.serviceproxy.ServiceExceptionMessageCodec;
 import service.UserService;
 import util.ImmutableJsonObject;
+import util.Shareables;
 
-public class UserServiceVertxProxyHandler extends ProxyHandler {
+public class UserServiceVertxProxyHandler implements Handler<Message<Object>> {
 
     public static final long DEFAULT_CONNECTION_TIMEOUT = 5 * 60; // 5 minutes
     private final Vertx vertx;
@@ -62,32 +64,44 @@ public class UserServiceVertxProxyHandler extends ProxyHandler {
         }
     }
 
-    @Override
+//    @Override
     public void close() {
         if (timerID != -1) {
             vertx.cancelTimer(timerID);
         }
-        super.close();
+//        super.close();
     }
 
     private void accessed() {
         this.lastAccessed = System.nanoTime();
     }
 
-    public void handle(Message<JsonObject> msg) {
+    public void handle(Message<Object> msg) {
         try {
-            ImmutableJsonObject json = (ImmutableJsonObject) msg.body();
             String action = msg.headers().get("action");
             if (action == null) throw new IllegalStateException("action not specified");
             accessed();
             switch (action) {
                 case "createUser": {
+                    ImmutableJsonObject json = (ImmutableJsonObject) msg.body();
                     service.createUser(json.getObject())
                             .onComplete(res -> {
                                 if (res.failed()) {
                                     HelperUtils.manageFailure(msg, res.cause(), includeDebugInfo);
                                 } else {
-                                    msg.reply(res.result() != null ? ImmutableJsonObject.of(res.result().copy()) : null);
+                                    msg.reply(res.result() != null ? ImmutableJsonObject.of(res.result()) : null);
+                                }
+                            });
+                    break;
+                }
+                case "getUsers": {
+                    JsonArray json = (JsonArray) msg.body();
+                    service.getUsers(json.getJsonObject(0), json.getLong(1), json.getInteger(2))
+                            .onComplete(res -> {
+                                if (res.failed()) {
+                                    HelperUtils.manageFailure(msg, res.cause(), includeDebugInfo);
+                                } else {
+                                    msg.reply(res.result() != null ? new JsonArray(res.result()) : null);
                                 }
                             });
                     break;
