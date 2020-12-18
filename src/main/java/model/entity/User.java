@@ -1,8 +1,14 @@
 package model.entity;
 
-import io.vertx.core.shareddata.Shareable;
+import com.dslplatform.json.CompiledJson;
+import factory.UserFactory;
+import io.vertx.core.buffer.Buffer;
+import serde.ClusterMessage;
+import serde.Deserializer;
+import serde.Serializer;
 
-public class User implements Shareable {
+@CompiledJson
+public class User implements ClusterMessage {
     private Long userId;
     private String username;
     private String password;
@@ -55,5 +61,31 @@ public class User implements Shareable {
                 ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 '}';
+    }
+
+    @Override
+    public void writeToBuffer(Buffer buffer) {
+        new Serializer(buffer).writeLong(userId)
+                .writeUTF(username)
+                .writeUTF(password);
+    }
+
+    @Override
+    public int readFromBuffer(int pos, Buffer buffer) {
+        var deserializer = new Deserializer(buffer, pos);
+        userId = deserializer.readLong();
+        username = deserializer.readUTF();
+        password = deserializer.readUTF();
+        return deserializer.getPosition();
+    }
+
+    @Override
+    public int getFactoryId() {
+        return UserFactory.FACTORY_ID;
+    }
+
+    @Override
+    public int getClassId() {
+        return UserFactory.USER_TYPE;
     }
 }

@@ -1,5 +1,8 @@
 package model.response;
 
+import com.dslplatform.json.CompiledJson;
+
+@CompiledJson
 public class CreateUserResponse {
     private long userId;
     private String username;

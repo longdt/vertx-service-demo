@@ -16,6 +16,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Future<User> createUser(CreateUserRequest createRequest) {
+        System.out.println(Thread.currentThread().getName() + ": " + createRequest);
         var user = new User()
                 .setUserId(++counter)
                 .setUsername(createRequest.getUsername())
@@ -25,8 +26,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Future<List<User>> getUsers(JsonObject filter, long offset, int limit) {
+        System.out.println(Thread.currentThread().getName() + ": " + offset + ", " + limit);
         var user1 = new User()
-                .setUserId(++counter)
+                .setUserId(counter)
                 .setUsername("username1")
                 .setPassword("password1");
         var user2 = new User()

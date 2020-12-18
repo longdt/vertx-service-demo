@@ -3,16 +3,15 @@ package service.impl;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.serviceproxy.HelperUtils;
 import io.vertx.serviceproxy.ServiceException;
 import io.vertx.serviceproxy.ServiceExceptionMessageCodec;
 import service.UserService;
 import util.ImmutableJsonObject;
-import util.Shareables;
 
-public class UserServiceVertxProxyHandler implements Handler<Message<Object>> {
+public class UserServiceLocalProxyHandler implements Handler<Message<Object>> {
 
     public static final long DEFAULT_CONNECTION_TIMEOUT = 5 * 60; // 5 minutes
     private final Vertx vertx;
@@ -22,19 +21,19 @@ public class UserServiceVertxProxyHandler implements Handler<Message<Object>> {
     private final long timeoutSeconds;
     private final boolean includeDebugInfo;
 
-    public UserServiceVertxProxyHandler(Vertx vertx, UserService service) {
+    public UserServiceLocalProxyHandler(Vertx vertx, UserService service) {
         this(vertx, service, DEFAULT_CONNECTION_TIMEOUT);
     }
 
-    public UserServiceVertxProxyHandler(Vertx vertx, UserService service, long timeoutInSecond) {
+    public UserServiceLocalProxyHandler(Vertx vertx, UserService service, long timeoutInSecond) {
         this(vertx, service, true, timeoutInSecond);
     }
 
-    public UserServiceVertxProxyHandler(Vertx vertx, UserService service, boolean topLevel, long timeoutInSecond) {
+    public UserServiceLocalProxyHandler(Vertx vertx, UserService service, boolean topLevel, long timeoutInSecond) {
         this(vertx, service, true, timeoutInSecond, false);
     }
 
-    public UserServiceVertxProxyHandler(Vertx vertx, UserService service, boolean topLevel, long timeoutSeconds, boolean includeDebugInfo) {
+    public UserServiceLocalProxyHandler(Vertx vertx, UserService service, boolean topLevel, long timeoutSeconds, boolean includeDebugInfo) {
         this.vertx = vertx;
         this.service = service;
         this.includeDebugInfo = includeDebugInfo;
@@ -96,7 +95,8 @@ public class UserServiceVertxProxyHandler implements Handler<Message<Object>> {
                 }
                 case "getUsers": {
                     JsonArray json = (JsonArray) msg.body();
-                    service.getUsers(json.getJsonObject(0), json.getLong(1), json.getInteger(2))
+                    var params = json.getList();
+                    service.getUsers((JsonObject) params.get(0), (long) params.get(1), (int) params.get(2))
                             .onComplete(res -> {
                                 if (res.failed()) {
                                     HelperUtils.manageFailure(msg, res.cause(), includeDebugInfo);
